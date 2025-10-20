@@ -1,0 +1,61 @@
+﻿﻿
+@page "/pizza"
+@using MyBlazorHybridApp.Shared.Model
+@using System.Net.Http
+@using System.Net.Http.Json
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Http
+@using MyBlazorHybridApp.Shared.Services
+@inject OrderState OrderState
+@using BlazingPizza
+@inject IFormFactor FormFactor
+@inject HttpClient HttpClient
+@using MyBlazorHybridApp.Shared.Layout
+
+<h3>Today's Pizza Specials</h3>
+<div class="main">
+    <h1>Blazing Pizzas</h1>
+    <ul class="pizza-cards">
+        @if (specials != null)
+        {
+            @foreach (var special in specials)
+            {
+                <li @onclick="@(() => OrderState.ShowConfigurePizzaDialog(special))" style="background-image: url('@special.ImageUrl')">
+                    <div class="pizza-info">
+                        <span class="title">@special.Name</span>
+                        @special.Description
+                        <span class="price">@special.GetFormattedBasePrice()</span>
+                    </div>
+                </li>
+            }
+        }
+    </ul>
+</div>
+
+@if (OrderState.ShowingConfigureDialog)
+{
+    <ConfigurePizzaDialog
+        Pizza="OrderState.ConfiguringPizza"
+        OnCancel="OrderState.CancelConfigurePizzaDialog"
+        OnConfirm="OrderState.ConfirmConfigurePizzaDialog" />
+}
+@code {
+    List<PizzaSpecial> specials = new();
+    string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            specials = await HttpClient.GetFromJsonAsync<List<PizzaSpecial>>("https://localhost:7226/api/Specials") ?? new();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error fetching pizza specials: {ex.Message}";
+        }
+    }
+}
+@if (errorMessage != null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
